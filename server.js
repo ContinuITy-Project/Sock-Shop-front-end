@@ -1,3 +1,9 @@
+var appzip = require('appmetrics-zipkin')({
+  host: 'localhost',
+  port: 8182,
+  serviceName:'front-end'
+});
+
 var request      = require("request")
   , express      = require("express")
   , morgan       = require("morgan")
@@ -15,6 +21,20 @@ var request      = require("request")
   , metrics      = require("./api/metrics")
   , app          = express()
 
+
+// const CLSContext = require('zipkin-context-cls');
+// const {Tracer} = require('zipkin');
+// const {recorder} = require('./recorder');
+//
+// const ctxImpl = new CLSContext('zipkin');
+// const tracer = new Tracer({ctxImpl, recorder, traceId128Bit: false});
+//
+// // instrument the server
+// const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
+// app.use(zipkinMiddleware({
+//   tracer,
+//   serviceName: 'front-end' // name of this application
+// }));
 
 app.use(helpers.rewriteSlash);
 app.use(metrics);
