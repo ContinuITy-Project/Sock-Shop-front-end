@@ -31,6 +31,7 @@
         };
 
         console.log("Posting Customer: " + JSON.stringify(req.body));
+        req.session.lastBody = req.body;
 
         request(options, function(error, response, body) {
             if (error) {
@@ -52,6 +53,8 @@
             body: req.body
         };
         console.log("Posting Address: " + JSON.stringify(req.body));
+        req.session.lastBody = req.body;
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -116,6 +119,8 @@
             body: req.body
         };
         console.log("Posting Card: " + JSON.stringify(req.body));
+        req.session.lastBody = req.body;
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -186,6 +191,8 @@
         };
 
         console.log("Posting Customer: " + JSON.stringify(req.body));
+        req.session.lastBody = req.body;
+
 
         async.waterfall([
                 function(callback) {

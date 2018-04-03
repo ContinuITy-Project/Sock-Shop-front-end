@@ -64,7 +64,7 @@
   // Add new item to cart
   app.post("/cart", function (req, res, next) {
     console.log("Attempting to add to cart: " + JSON.stringify(req.body));
-
+    
     if (req.body.id == null) {
       next(new Error("Must pass id of item to add"), 400);
       return;
@@ -87,6 +87,7 @@
             body: {itemId: item.id, unitPrice: item.price}
           };
           console.log("POST to carts: " + options.uri + " body: " + JSON.stringify(options.body));
+          req.session.lastBody = options.body;
           request(options, function (error, response, body) {
             if (error) {
               callback(error)
@@ -109,7 +110,7 @@
 // Update cart item
   app.post("/cart/update", function (req, res, next) {
     console.log("Attempting to update cart item: " + JSON.stringify(req.body));
-    
+
     if (req.body.id == null) {
       next(new Error("Must pass id of item to update"), 400);
       return;
@@ -135,6 +136,8 @@
             body: {itemId: item.id, quantity: parseInt(req.body.quantity), unitPrice: item.price}
           };
           console.log("PATCH to carts: " + options.uri + " body: " + JSON.stringify(options.body));
+          req.session.lastBody = options.body;
+
           request(options, function (error, response, body) {
             if (error) {
               callback(error)

@@ -7,7 +7,6 @@
     , endpoints = require("../endpoints")
     , helpers   = require("../../helpers")
     , app       = express()
-
   app.get("/orders", function (req, res, next) {
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
@@ -125,6 +124,8 @@
             body: order
           };
           console.log("Posting Order: " + JSON.stringify(order));
+          req.session.lastBody = order;
+
           request(options, function (error, response, body) {
             if (error) {
               return callback(error);
