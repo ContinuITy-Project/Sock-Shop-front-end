@@ -5,7 +5,30 @@
 
 
     app.get("/customers/:id", function(req, res, next) {
+        global.tracer.local(req.originalUrl, () => {
+            global.tracer.recordBinary("http.url", "sddddddddddddddddddddddddd");
+            global.tracer.recordBinary("body", req.body);
+            global.tracer.recordBinary("http.method", req.method);
+            const headers = req.headers;
+            var spanId = headers[Header.SpanId.toLowerCase()];
+            if (spanId !== undefined) {
+              const traceId = new Some(headers[Header.TraceId.toLowerCase()]);
+              const parentSpanId = new Some(headers[Header.ParentSpanId.toLowerCase()]);
+              const sampled = new Some(headers[Header.Sampled.toLowerCase()]);
+              const flags = new Some(headers[Header.Flags.toLowerCase()])
+                .flatMap(stringToIntOption)
+                .getOrElse(0);
+              var id = new TraceId({
+                traceId: traceId,
+                parentId: new Some(spanId),
+                spanId: randomTraceId(),
+                sampled: sampled.map(stringToBoolean),
+                flags
+              });
+              global.tracer.setId(id);
+            }
         helpers.simpleHttpRequest(endpoints.customersUrl + "/" + req.session.customerId, res, next);
+        })
     });
     app.get("/cards/:id", function(req, res, next) {
         helpers.simpleHttpRequest(endpoints.cardsUrl + "/" + req.params.id, res, next);
