@@ -1,17 +1,3 @@
-var appzip = require("appmetrics-zipkin")({
-  host: "localhost",
-  port: 8182,
-  serviceName: "front-end"
-});
-
-const {
-  BatchRecorder,
-  jsonEncoder: { JSON_V2 }
-} = require("zipkin");
-const { HttpLogger } = require("zipkin-transport-http");
-
-const zipkin = require("zipkin");
-
 var request = require("request"),
   express = require("express"),
   morgan = require("morgan"),
@@ -26,22 +12,36 @@ var request = require("request"),
   catalogue = require("./api/catalogue"),
   orders = require("./api/orders"),
   user = require("./api/user"),
-  metrics = require("./api/metrics"),
-  app = express();
+  metrics = require("./api/metrics");
+  
+const zipkin = require("zipkin");
+const {Tracer, ExplicitContext, ConsoleRecorder} = require('zipkin');
+const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
 
-// const CLSContext = require('zipkin-context-cls');
-// const {Tracer} = require('zipkin');
-// const {recorder} = require('./recorder');
-//
-// const ctxImpl = new CLSContext('zipkin');
-// const tracer = new Tracer({ctxImpl, recorder, traceId128Bit: false});
-//
-// // instrument the server
-// const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
-// app.use(zipkinMiddleware({
-//   tracer,
-//   serviceName: 'front-end' // name of this application
-// }));
+const CLSContext = require("zipkin-context-cls");
+const ctxImpl = new CLSContext();
+
+var port = process.env.ZIPKIN_PORT;
+var host = process.env.ZIPKIN_HOST;
+const zipkinUrl = `http://${host}:${port}`;
+
+const recorder = new BatchRecorder({
+  logger: new HttpLogger({
+    endpoint: `${zipkinUrl}/rest/api/v2/spans`,
+    jsonEncoder: JSON_V2
+  })
+});
+
+tracer = new zipkin.Tracer({
+  ctxImpl,
+  recorder: recorder,
+  sampler: new zipkin.sampler.CountingSampler(1), // sample rate 0.01 will sample 1 % of all incoming requests
+  traceId128Bit: false // to generate 128-bit trace IDs.
+});
+global.tracer = tracer;
+
+const app = express();
+app.use(zipkinMiddleware({tracer}));
 
 app.use(helpers.rewriteSlash);
 app.use(metrics);
@@ -83,23 +83,3 @@ var server = app.listen(process.env.PORT || 8079, function() {
   console.log("App now running in %s mode on port %d", app.get("env"), port);
 });
 
-const CLSContext = require("zipkin-context-cls");
-const ctxImpl = new CLSContext();
-
-var port = process.env.ZIPKIN_PORT;
-var host = process.env.ZIPKIN_HOST;
-const zipkinUrl = `http://${host}:${port}`;
-
-const recorder = new BatchRecorder({
-  logger: new HttpLogger({
-    endpoint: `${zipkinUrl}/rest/api/v2/spans`,
-    jsonEncoder: JSON_V2
-  })
-});
-
-global.tracer = new zipkin.Tracer({
-  ctxImpl,
-  recorder: recorder,
-  sampler: new zipkin.sampler.CountingSampler(1), // sample rate 0.01 will sample 1 % of all incoming requests
-  traceId128Bit: false // to generate 128-bit trace IDs.
-});
