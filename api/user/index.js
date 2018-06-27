@@ -5,7 +5,7 @@
 
 
     app.get("/customers/:id", function(req, res, next) {
-        global.tracer.local(req.originalUrl, () => {
+ /*        global.tracer.local(req.originalUrl, () => {
             global.tracer.recordBinary("http.url", "sddddddddddddddddddddddddd");
             global.tracer.recordBinary("body", req.body);
             global.tracer.recordBinary("http.method", req.method);
@@ -26,9 +26,9 @@
                 flags
               });
               global.tracer.setId(id);
-            }
-        helpers.simpleHttpRequest(endpoints.customersUrl + "/" + req.session.customerId, res, next);
-        })
+            } */
+
+        //})
     });
     app.get("/cards/:id", function(req, res, next) {
         helpers.simpleHttpRequest(endpoints.cardsUrl + "/" + req.params.id, res, next);
