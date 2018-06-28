@@ -1,5 +1,4 @@
-var request = require("request"),
-  express = require("express"),
+var originalRequest = require("request"),
   morgan = require("morgan"),
   path = require("path"),
   bodyParser = require("body-parser"),
@@ -13,13 +12,14 @@ var request = require("request"),
   orders = require("./api/orders"),
   user = require("./api/user"),
   metrics = require("./api/metrics");
-  
-const zipkin = require("zipkin");
-const {Tracer, ExplicitContext, ConsoleRecorder} = require('zipkin');
-const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
 
-const CLSContext = require("zipkin-context-cls");
-const ctxImpl = new CLSContext();
+const express = require("express");
+const zipkin = require("zipkin");
+const {Tracer, ExplicitContext, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
+const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
+const wrapRequest = require('zipkin-instrumentation-request');
+const {HttpLogger} = require('zipkin-transport-http');
+const ctxImpl = new ExplicitContext();
 
 var port = process.env.ZIPKIN_PORT;
 var host = process.env.ZIPKIN_HOST;
@@ -32,16 +32,23 @@ const recorder = new BatchRecorder({
   })
 });
 
-tracer = new zipkin.Tracer({
+const serviceName = "frontend";
+
+tracer = new Tracer({
   ctxImpl,
   recorder: recorder,
+  localServiceName: serviceName,
   sampler: new zipkin.sampler.CountingSampler(1), // sample rate 0.01 will sample 1 % of all incoming requests
   traceId128Bit: false // to generate 128-bit trace IDs.
 });
 global.tracer = tracer;
 
+// Monitor express
 const app = express();
-app.use(zipkinMiddleware({tracer}));
+app.use(zipkinMiddleware({tracer, serviceName }));
+
+const remoteServiceName = "remoteService";
+const request = wrapRequest(originalRequest, {tracer, remoteServiceName});
 
 app.use(helpers.rewriteSlash);
 app.use(metrics);
