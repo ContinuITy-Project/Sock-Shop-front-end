@@ -1,34 +1,18 @@
 (function() {
     'use strict';
 
-    var async = require("async"), express = require("express"), request = require("request"), endpoints = require("../endpoints"), helpers = require("../../helpers"), app = express(), cookie_name = "logged_in"
+    var async = require("async"), express = require("express"), originalRequest = require("request"), endpoints = require("../endpoints"), helpers = require("../../helpers"), app = express(), cookie_name = "logged_in"
+    
+    var serviceName = "frontend";
+    var remoteServiceName = "user";
+    
+    
+    const wrapRequest = require('zipkin-instrumentation-request');
+    
 
 
     app.get("/customers/:id", function(req, res, next) {
- /*        global.tracer.local(req.originalUrl, () => {
-            global.tracer.recordBinary("http.url", "sddddddddddddddddddddddddd");
-            global.tracer.recordBinary("body", req.body);
-            global.tracer.recordBinary("http.method", req.method);
-            const headers = req.headers;
-            var spanId = headers[Header.SpanId.toLowerCase()];
-            if (spanId !== undefined) {
-              const traceId = new Some(headers[Header.TraceId.toLowerCase()]);
-              const parentSpanId = new Some(headers[Header.ParentSpanId.toLowerCase()]);
-              const sampled = new Some(headers[Header.Sampled.toLowerCase()]);
-              const flags = new Some(headers[Header.Flags.toLowerCase()])
-                .flatMap(stringToIntOption)
-                .getOrElse(0);
-              var id = new TraceId({
-                traceId: traceId,
-                parentId: new Some(spanId),
-                spanId: randomTraceId(),
-                sampled: sampled.map(stringToBoolean),
-                flags
-              });
-              global.tracer.setId(id);
-            } */
-
-        //})
+        helpers.simpleHttpRequest(endpoints.customersUrl + "/" + req.session.customerId, res, next);
     });
     app.get("/cards/:id", function(req, res, next) {
         helpers.simpleHttpRequest(endpoints.cardsUrl + "/" + req.params.id, res, next);
@@ -56,6 +40,9 @@
         console.log("Posting Customer: " + JSON.stringify(req.body));
         req.session.lastBody = req.body;
 
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -78,6 +65,9 @@
         console.log("Posting Address: " + JSON.stringify(req.body));
         req.session.lastBody = req.body;
 
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -94,6 +84,10 @@
             uri: endpoints.customersUrl + '/' + custId + '/cards',
             method: 'GET',
         };
+
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -117,6 +111,10 @@
             uri: endpoints.customersUrl + '/' + custId + '/addresses',
             method: 'GET',
         };
+
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -144,6 +142,9 @@
         console.log("Posting Card: " + JSON.stringify(req.body));
         req.session.lastBody = req.body;
 
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -161,6 +162,10 @@
             uri: endpoints.customersUrl + "/" + req.params.id,
             method: 'DELETE'
         };
+
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -178,6 +183,10 @@
             uri: endpoints.addressUrl + "/" + req.params.id,
             method: 'DELETE'
         };
+
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -195,6 +204,10 @@
             uri: endpoints.cardsUrl + "/" + req.params.id,
             method: 'DELETE'
         };
+
+        var tracer = global.tracer;
+        var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -219,6 +232,10 @@
 
         async.waterfall([
                 function(callback) {
+
+                    var tracer = global.tracer;
+                    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
                     request(options, function(error, response, body) {
                         if (error !== null ) {
                             callback(error);
@@ -248,6 +265,10 @@
                         uri: endpoints.cartsUrl + "/" + custId + "/merge" + "?sessionId=" + sessionId,
                         method: 'GET'
                     };
+
+                    var tracer = global.tracer;
+                    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
                     request(options, function(error, response, body) {
                         if (error) {
                             if(callback) callback(error);
@@ -288,6 +309,10 @@
                         },
                         uri: endpoints.loginUrl
                     };
+
+                    var tracer = global.tracer;
+                    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
                     request(options, function(error, response, body) {
                         if (error) {
                             callback(error);
@@ -313,6 +338,10 @@
                         uri: endpoints.cartsUrl + "/" + custId + "/merge" + "?sessionId=" + sessionId,
                         method: 'GET'
                     };
+
+                    var tracer = global.tracer;
+                    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
                     request(options, function(error, response, body) {
                         if (error) {
                             // if cart fails just log it, it prevenst login

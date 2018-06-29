@@ -3,10 +3,17 @@
 
   var async     = require("async")
     , express   = require("express")
-    , request   = require("request")
+    , originalRequest  = require("request")
     , endpoints = require("../endpoints")
     , helpers   = require("../../helpers")
     , app       = express()
+
+    var serviceName = "frontend";
+    var remoteServiceName = "orders";
+    
+    
+    const wrapRequest = require('zipkin-instrumentation-request');
+    
   app.get("/orders", function (req, res, next) {
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
@@ -18,6 +25,10 @@
     var custId = req.session.customerId;
     async.waterfall([
         function (callback) {
+          
+          var tracer = global.tracer;    
+          var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
           request(endpoints.ordersUrl + "/orders/search/customerId?sort=date&custId=" + custId, function (error, response, body) {
             if (error) {
               return callback(error);
@@ -41,6 +52,10 @@
 
   app.get("/orders/*", function (req, res, next) {
     var url = endpoints.ordersUrl + req.url.toString();
+    
+    var tracer = global.tracer;    
+    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+    
     request.get(url).pipe(res);
   });
 
@@ -56,6 +71,10 @@
 
     async.waterfall([
         function (callback) {
+          
+          var tracer = global.tracer;    
+          var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+          
           request(endpoints.customersUrl + "/" + custId, function (error, response, body) {
             if (error || body.status_code === 500) {
               callback(error);
@@ -79,6 +98,10 @@
           async.parallel([
               function (callback) {
                 console.log("GET Request to: " + addressLink);
+                
+                var tracer = global.tracer;    
+                var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+                
                 request.get(addressLink, function (error, response, body) {
                   if (error) {
                     callback(error);
@@ -94,6 +117,10 @@
               },
               function (callback) {
                 console.log("GET Request to: " + cardLink);
+                
+                var tracer = global.tracer;    
+                var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+                
                 request.get(cardLink, function (error, response, body) {
                   if (error) {
                     callback(error);
@@ -125,6 +152,9 @@
           };
           console.log("Posting Order: " + JSON.stringify(order));
           req.session.lastBody = order;
+
+          var tracer = global.tracer;    
+          var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
           request(options, function (error, response, body) {
             if (error) {

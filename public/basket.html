@@ -732,6 +732,10 @@ _________________________________________________________ -->
 
                             })
                         }
+                    },
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader("X-B3-Spanid", tracer.id.spanId);
+                        xhr.setRequestHeader("X-B3-Traceid", tracer.id.traceId);
                     }
                 }).always(
                     $(window).trigger('resize')

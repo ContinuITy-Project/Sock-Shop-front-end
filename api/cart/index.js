@@ -3,16 +3,27 @@
 
   var async     = require("async")
     , express   = require("express")
-    , request   = require("request")
+    , originalRequest   = require("request")
     , helpers   = require("../../helpers")
     , endpoints = require("../endpoints")
     , app       = express()
+
+ 
+  var serviceName = "frontend";
+  var remoteServiceName = "cart";
+  
+  
+  const wrapRequest = require('zipkin-instrumentation-request');
 
   // List items in cart for current logged in user.
   app.get("/cart", function (req, res, next) {
     console.log("Request received: " + req.url + ", " + req.query.custId);
     var custId = helpers.getCustomerId(req, app.get("env"));
     console.log("Customer ID: " + custId);
+    
+    var tracer = global.tracer;
+    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+    
     request(endpoints.cartsUrl + "/" + custId + "/items", function (error, response, body) {
       if (error) {
         return next(error);
@@ -29,6 +40,10 @@
       uri: endpoints.cartsUrl + "/" + custId,
       method: 'DELETE'
     };
+    
+    var tracer = global.tracer;
+    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+    
     request(options, function (error, response, body) {
       if (error) {
         return next(error);
@@ -52,6 +67,10 @@
       uri: endpoints.cartsUrl + "/" + custId + "/items/" + req.params.id.toString(),
       method: 'DELETE'
     };
+
+    var tracer = global.tracer;
+    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
     request(options, function (error, response, body) {
       if (error) {
         return next(error);
@@ -74,6 +93,10 @@
 
     async.waterfall([
         function (callback) {
+
+          var tracer = global.tracer;
+          var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
           request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
             console.log(body);
             callback(error, JSON.parse(body));
@@ -88,6 +111,10 @@
           };
           console.log("POST to carts: " + options.uri + " body: " + JSON.stringify(options.body));
           req.session.lastBody = options.body;
+          
+          var tracer = global.tracer;
+          var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+          
           request(options, function (error, response, body) {
             if (error) {
               callback(error)
@@ -123,6 +150,10 @@
 
     async.waterfall([
         function (callback) {
+
+          var tracer = global.tracer;
+          var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+
           request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
             console.log(body);
             callback(error, JSON.parse(body));
@@ -137,6 +168,9 @@
           };
           console.log("PATCH to carts: " + options.uri + " body: " + JSON.stringify(options.body));
           req.session.lastBody = options.body;
+
+          var tracer = global.tracer;
+          var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
           request(options, function (error, response, body) {
             if (error) {

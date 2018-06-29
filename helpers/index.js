@@ -1,7 +1,10 @@
 (function (){
   'use strict';
 
-  var request = require("request");
+  const wrapRequest = require('zipkin-instrumentation-request');
+  var originalRequest = require("request");
+  var remoteServiceName = "remoteService";
+  var serviceName = "frontend";
   var helpers = {};
 
   /* Public: errorHandler is a middleware that handles your errors
@@ -76,6 +79,10 @@
    * });
    */
   helpers.simpleHttpRequest = function(url, res, next) {
+    
+    var tracer = global.tracer;
+    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+    
     request.get(url, function(error, response, body) {
       if (error) return next(error);
       helpers.respondSuccessBody(res, body);

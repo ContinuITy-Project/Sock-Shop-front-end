@@ -1,4 +1,4 @@
-var originalRequest = require("request"),
+var request = require("request"),
   morgan = require("morgan"),
   path = require("path"),
   bodyParser = require("body-parser"),
@@ -17,7 +17,6 @@ const express = require("express");
 const zipkin = require("zipkin");
 const {Tracer, ExplicitContext, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
 const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
-const wrapRequest = require('zipkin-instrumentation-request');
 const {HttpLogger} = require('zipkin-transport-http');
 const ctxImpl = new ExplicitContext();
 
@@ -34,6 +33,8 @@ const recorder = new BatchRecorder({
 
 const serviceName = "frontend";
 
+global.localServiceName = serviceName;
+
 tracer = new Tracer({
   ctxImpl,
   recorder: recorder,
@@ -46,9 +47,6 @@ global.tracer = tracer;
 // Monitor express
 const app = express();
 app.use(zipkinMiddleware({tracer, serviceName }));
-
-const remoteServiceName = "remoteService";
-const request = wrapRequest(originalRequest, {tracer, remoteServiceName});
 
 app.use(helpers.rewriteSlash);
 app.use(metrics);
@@ -89,4 +87,3 @@ var server = app.listen(process.env.PORT || 8079, function() {
   var port = server.address().port;
   console.log("App now running in %s mode on port %d", app.get("env"), port);
 });
-

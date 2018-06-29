@@ -35,6 +35,7 @@
     "zipkin": "^0.10.1",
     "zipkin-context-cls": "^0.13.0",
     "zipkin-instrumentation-express": "^0.11.2",
+    "zipkin-instrumentation-request": "^0.13.0",
     "zipkin-transport-http": "^0.13.0"
   },
   "devDependencies": {
