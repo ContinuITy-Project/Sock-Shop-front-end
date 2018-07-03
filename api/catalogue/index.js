@@ -7,7 +7,7 @@
     , helpers   = require("../../helpers")
     , app       = express()
 
-    var serviceName = "frontend";
+    var serviceName = "frontend-remotecall";
     var remoteServiceName = "catalogue";
 
     const wrapRequest = require('zipkin-instrumentation-request');

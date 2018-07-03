@@ -4,7 +4,7 @@
   const wrapRequest = require('zipkin-instrumentation-request');
   var originalRequest = require("request");
   var remoteServiceName = "remoteService";
-  var serviceName = "frontend";
+  var serviceName = "frontend-remotecall";
   var helpers = {};
 
   /* Public: errorHandler is a middleware that handles your errors

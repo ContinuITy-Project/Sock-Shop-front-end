@@ -3,7 +3,7 @@
 
     var async = require("async"), express = require("express"), originalRequest = require("request"), endpoints = require("../endpoints"), helpers = require("../../helpers"), app = express(), cookie_name = "logged_in"
     
-    var serviceName = "frontend";
+    var serviceName = "frontend-remotecall";
     var remoteServiceName = "user";
     
     
