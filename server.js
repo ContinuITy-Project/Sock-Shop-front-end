@@ -15,10 +15,12 @@ var request = require("request"),
 
 const express = require("express");
 const zipkin = require("zipkin");
-const {Tracer, ExplicitContext, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
+const {Tracer, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
 const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
 const {HttpLogger} = require('zipkin-transport-http');
-const ctxImpl = new ExplicitContext();
+const CLSContext = require('zipkin-context-cls');
+
+const ctxImpl = new CLSContext('zipkin');
 
 var port = process.env.ZIPKIN_PORT;
 var host = process.env.ZIPKIN_HOST;

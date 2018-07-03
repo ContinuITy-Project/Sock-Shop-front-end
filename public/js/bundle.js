@@ -1553,7 +1553,7 @@ var Tracer = function () {
         traceId: traceId,
         parentId: None,
         spanId: rootSpanId,
-        sampled: None,
+        sampled: new Some(false),
         flags: 0
       });
       id._sampled = this.sampler.shouldSample(id);
