@@ -9,23 +9,50 @@
     
     const wrapRequest = require('zipkin-instrumentation-request');
     
+    const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
+    const {Tracer, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
+    const zipkin = require("zipkin");
+  
+    const CLSContext = require('zipkin-context-cls');
+    const ctxImpl = new CLSContext('user');
+    const {HttpLogger} = require('zipkin-transport-http');
+
+    var port = process.env.ZIPKIN_PORT;
+    var host = process.env.ZIPKIN_HOST;
+    const zipkinUrl = `http://${host}:${port}`;
+
+    const recorder = new BatchRecorder({
+        logger: new HttpLogger({
+        endpoint: `${zipkinUrl}/rest/api/v2/spans`,
+        jsonEncoder: JSON_V2
+        })
+    });
+
+    const tracer = new Tracer({
+        ctxImpl,
+        recorder: recorder,
+        localServiceName: serviceName,
+        sampler: new zipkin.sampler.CountingSampler(1), // sample rate 0.01 will sample 1 % of all incoming requests
+        traceId128Bit: false // to generate 128-bit trace IDs.
+    });
+  app.use(zipkinMiddleware({tracer}));
 
 
     app.get("/customers/:id", function(req, res, next) {
-        helpers.simpleHttpRequest(endpoints.customersUrl + "/" + req.session.customerId, res, next);
+        helpers.simpleHttpRequest(endpoints.customersUrl + "/" + req.session.customerId, res, next, tracer);
     });
     app.get("/cards/:id", function(req, res, next) {
-        helpers.simpleHttpRequest(endpoints.cardsUrl + "/" + req.params.id, res, next);
+        helpers.simpleHttpRequest(endpoints.cardsUrl + "/" + req.params.id, res, next, tracer);
     });
 
     app.get("/customers", function(req, res, next) {
-        helpers.simpleHttpRequest(endpoints.customersUrl, res, next);
+        helpers.simpleHttpRequest(endpoints.customersUrl, res, next, tracer);
     });
     app.get("/addresses", function(req, res, next) {
-        helpers.simpleHttpRequest(endpoints.addressUrl, res, next);
+        helpers.simpleHttpRequest(endpoints.addressUrl, res, next, tracer);
     });
     app.get("/cards", function(req, res, next) {
-        helpers.simpleHttpRequest(endpoints.cardsUrl, res, next);
+        helpers.simpleHttpRequest(endpoints.cardsUrl, res, next, tracer);
     });
 
     // Create Customer - TO BE USED FOR TESTING ONLY (for now)
@@ -42,6 +69,7 @@
 
         var tracer = global.tracer;
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+        tracer.local('pay-me', () => {
 
         request(options, function(error, response, body) {
             if (error) {
@@ -51,6 +79,7 @@
         }.bind({
             res: res
         }));
+    });
     });
 
     app.post("/addresses", function(req, res, next) {
@@ -66,6 +95,8 @@
         req.session.lastBody = req.body;
 
         var tracer = global.tracer;
+        tracer.local('pay-me', () => {
+
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
         request(options, function(error, response, body) {
@@ -77,6 +108,7 @@
             res: res
         }));
     });
+    });
 
     app.get("/card", function(req, res, next) {
         var custId = helpers.getCustomerId(req, app.get("env"));
@@ -87,6 +119,7 @@
 
         var tracer = global.tracer;
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+        tracer.local('pay-me', () => {
 
         request(options, function(error, response, body) {
             if (error) {
@@ -104,6 +137,7 @@
             res: res
         }));
     });
+    });
 
     app.get("/address", function(req, res, next) {
         var custId = helpers.getCustomerId(req, app.get("env"));
@@ -114,6 +148,8 @@
 
         var tracer = global.tracer;
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+        
+        tracer.local('pay-me', () => {
 
         request(options, function(error, response, body) {
             if (error) {
@@ -128,6 +164,7 @@
         }.bind({
             res: res
         }));
+    });
     });
 
     app.post("/cards", function(req, res, next) {
@@ -144,6 +181,7 @@
 
         var tracer = global.tracer;
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+        tracer.local('pay-me', () => {
 
         request(options, function(error, response, body) {
             if (error) {
@@ -153,6 +191,7 @@
         }.bind({
             res: res
         }));
+    });
     });
 
     // Delete Customer - TO BE USED FOR TESTING ONLY (for now)
@@ -166,6 +205,8 @@
         var tracer = global.tracer;
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
+        tracer.local('pay-me', () => {
+
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -174,6 +215,7 @@
         }.bind({
             res: res
         }));
+    });
     });
 
     // Delete Address - TO BE USED FOR TESTING ONLY (for now)
@@ -186,6 +228,7 @@
 
         var tracer = global.tracer;
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+        tracer.local('pay-me', () => {
 
         request(options, function(error, response, body) {
             if (error) {
@@ -195,6 +238,7 @@
         }.bind({
             res: res
         }));
+    });
     });
 
     // Delete Card - TO BE USED FOR TESTING ONLY (for now)
@@ -207,6 +251,7 @@
 
         var tracer = global.tracer;
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+        tracer.local('pay-me', () => {
 
         request(options, function(error, response, body) {
             if (error) {
@@ -216,6 +261,7 @@
         }.bind({
             res: res
         }));
+    });
     });
 
     app.post("/register", function(req, res, next) {
@@ -235,6 +281,7 @@
 
                     var tracer = global.tracer;
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+                    tracer.local('pay-me', () => {
 
                     request(options, function(error, response, body) {
                         if (error !== null ) {
@@ -256,6 +303,7 @@
                         console.log(response.statusCode);
                         callback(true);
                     });
+                });
                 },
                 function(custId, callback) {
                     var sessionId = req.session.id;
@@ -268,6 +316,7 @@
 
                     var tracer = global.tracer;
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+                    tracer.local('pay-me', () => {
 
                     request(options, function(error, response, body) {
                         if (error) {
@@ -277,6 +326,7 @@
                         console.log('Carts merged.');
                         if(callback) callback(null, custId);
                     });
+                });
                 }
             ],
             function(err, custId) {
@@ -312,6 +362,7 @@
 
                     var tracer = global.tracer;
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+                    tracer.local('pay-me', () => {
 
                     request(options, function(error, response, body) {
                         if (error) {
@@ -329,6 +380,7 @@
                         console.log(response.statusCode);
                         callback(true);
                     });
+                });
                 },
                 function(custId, callback) {
                     var sessionId = req.session.id;
@@ -341,6 +393,8 @@
 
                     var tracer = global.tracer;
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+                    
+                    tracer.local('pay-me', () => {
 
                     request(options, function(error, response, body) {
                         if (error) {
@@ -351,6 +405,7 @@
                         console.log('Carts merged.');
                         callback(null, custId);
                     });
+                });
                 }
             ],
             function(err, custId) {

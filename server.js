@@ -19,7 +19,6 @@ const {Tracer, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require
 const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
 const {HttpLogger} = require('zipkin-transport-http');
 const CLSContext = require('zipkin-context-cls');
-
 const ctxImpl = new CLSContext('zipkin');
 
 var port = process.env.ZIPKIN_PORT;
@@ -36,6 +35,7 @@ const recorder = new BatchRecorder({
 const serviceName = "frontend";
 
 global.localServiceName = serviceName;
+global.recorder = recorder;
 
 tracer = new Tracer({
   ctxImpl,
@@ -48,7 +48,6 @@ global.tracer = tracer;
 
 // Monitor express
 const app = express();
-app.use(zipkinMiddleware({tracer, serviceName }));
 
 app.use(helpers.rewriteSlash);
 app.use(metrics);

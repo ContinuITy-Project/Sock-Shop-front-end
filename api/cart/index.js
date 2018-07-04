@@ -14,6 +14,35 @@
   
   
   const wrapRequest = require('zipkin-instrumentation-request');
+  const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
+  
+  const {Tracer, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
+  const zipkin = require("zipkin");
+  
+  const CLSContext = require('zipkin-context-cls');
+  const ctxImpl = new CLSContext('cart');
+  const {HttpLogger} = require('zipkin-transport-http');
+
+  var port = process.env.ZIPKIN_PORT;
+  var host = process.env.ZIPKIN_HOST;
+  const zipkinUrl = `http://${host}:${port}`;
+
+  const recorder = new BatchRecorder({
+    logger: new HttpLogger({
+      endpoint: `${zipkinUrl}/rest/api/v2/spans`,
+      jsonEncoder: JSON_V2
+    })
+  });
+
+  const tracer = new Tracer({
+    ctxImpl,
+    recorder: recorder,
+    localServiceName: serviceName,
+    sampler: new zipkin.sampler.CountingSampler(1), // sample rate 0.01 will sample 1 % of all incoming requests
+    traceId128Bit: false // to generate 128-bit trace IDs.
+  });
+  app.use(zipkinMiddleware({tracer}));
+
 
   // List items in cart for current logged in user.
   app.get("/cart", function (req, res, next) {
@@ -21,15 +50,16 @@
     var custId = helpers.getCustomerId(req, app.get("env"));
     console.log("Customer ID: " + custId);
     
-    var tracer = global.tracer;
     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
     
+    tracer.local('pay-me', () => {
     request(endpoints.cartsUrl + "/" + custId + "/items", function (error, response, body) {
       if (error) {
         return next(error);
       }
       helpers.respondStatusBody(res, response.statusCode, body)
     });
+  });
   });
 
   // Delete cart
@@ -41,9 +71,10 @@
       method: 'DELETE'
     };
     
-    var tracer = global.tracer;
-    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
     
+    var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+    tracer.local('pay-me', () => {
+
     request(options, function (error, response, body) {
       if (error) {
         return next(error);
@@ -51,6 +82,7 @@
       console.log('User cart deleted with status: ' + response.statusCode);
       helpers.respondStatus(res, response.statusCode);
     });
+  });
   });
 
   // Delete item from cart
@@ -68,8 +100,8 @@
       method: 'DELETE'
     };
 
-    var tracer = global.tracer;
     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+    tracer.local('pay-me', () => {
 
     request(options, function (error, response, body) {
       if (error) {
@@ -78,6 +110,7 @@
       console.log('Item deleted with status: ' + response.statusCode);
       helpers.respondStatus(res, response.statusCode);
     });
+  });
   });
 
   // Add new item to cart
@@ -96,11 +129,13 @@
 
           var tracer = global.tracer;
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+          tracer.local('pay-me', () => {
 
           request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
             console.log(body);
             callback(error, JSON.parse(body));
           });
+        });
         },
         function (item, callback) {
           var options = {
@@ -112,9 +147,8 @@
           console.log("POST to carts: " + options.uri + " body: " + JSON.stringify(options.body));
           req.session.lastBody = options.body;
           
-          var tracer = global.tracer;
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-          
+          tracer.local('pay-me', () => {
           request(options, function (error, response, body) {
             if (error) {
               callback(error)
@@ -122,6 +156,7 @@
             }
             callback(null, response.statusCode);
           });
+        });
         }
     ], function (err, statusCode) {
       if (err) {
@@ -153,11 +188,13 @@
 
           var tracer = global.tracer;
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+          tracer.local('pay-me', () => {
 
           request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
             console.log(body);
             callback(error, JSON.parse(body));
           });
+        });
         },
         function (item, callback) {
           var options = {
@@ -171,6 +208,7 @@
 
           var tracer = global.tracer;
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+          tracer.local('pay-me', () => {
 
           request(options, function (error, response, body) {
             if (error) {
@@ -179,6 +217,7 @@
             }
             callback(null, response.statusCode);
           });
+        });
         }
     ], function (err, statusCode) {
       if (err) {

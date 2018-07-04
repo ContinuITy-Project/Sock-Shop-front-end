@@ -14,6 +14,34 @@
     
     const wrapRequest = require('zipkin-instrumentation-request');
     
+    const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
+    const {Tracer, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
+    const zipkin = require("zipkin");
+    
+    const CLSContext = require('zipkin-context-cls');
+    const ctxImpl = new CLSContext('orders');
+    const {HttpLogger} = require('zipkin-transport-http');
+
+    var port = process.env.ZIPKIN_PORT;
+    var host = process.env.ZIPKIN_HOST;
+    const zipkinUrl = `http://${host}:${port}`;
+
+    const recorder = new BatchRecorder({
+      logger: new HttpLogger({
+        endpoint: `${zipkinUrl}/rest/api/v2/spans`,
+        jsonEncoder: JSON_V2
+      })
+    });
+  
+    const tracer = new Tracer({
+      ctxImpl,
+      recorder: recorder,
+      localServiceName: serviceName,
+      sampler: new zipkin.sampler.CountingSampler(1), // sample rate 0.01 will sample 1 % of all incoming requests
+      traceId128Bit: false // to generate 128-bit trace IDs.
+    });
+    app.use(zipkinMiddleware({tracer}));
+
   app.get("/orders", function (req, res, next) {
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
@@ -26,8 +54,8 @@
     async.waterfall([
         function (callback) {
           
-          var tracer = global.tracer;    
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
+          tracer.local('pay-me', () => {
 
           request(endpoints.ordersUrl + "/orders/search/customerId?sort=date&custId=" + custId, function (error, response, body) {
             if (error) {
@@ -40,6 +68,7 @@
             }
             callback(null, JSON.parse(body)._embedded.customerOrders);
           });
+        });
         }
     ],
     function (err, result) {
@@ -53,10 +82,11 @@
   app.get("/orders/*", function (req, res, next) {
     var url = endpoints.ordersUrl + req.url.toString();
     
-    var tracer = global.tracer;    
     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-    
+    tracer.local('pay-me', () => {
+
     request.get(url).pipe(res);
+    });
   });
 
   app.post("/orders", function(req, res, next) {
@@ -72,9 +102,9 @@
     async.waterfall([
         function (callback) {
           
-          var tracer = global.tracer;    
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-          
+          tracer.local('pay-me', () => {
+
           request(endpoints.customersUrl + "/" + custId, function (error, response, body) {
             if (error || body.status_code === 500) {
               callback(error);
@@ -93,15 +123,16 @@
             };
             callback(null, order, addressLink, cardLink);
           });
+        });
         },
         function (order, addressLink, cardLink, callback) {
           async.parallel([
               function (callback) {
                 console.log("GET Request to: " + addressLink);
                 
-                var tracer = global.tracer;    
                 var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-                
+                tracer.local('pay-me', () => {
+
                 request.get(addressLink, function (error, response, body) {
                   if (error) {
                     callback(error);
@@ -114,13 +145,14 @@
                   }
                   callback();
                 });
+              });
               },
               function (callback) {
                 console.log("GET Request to: " + cardLink);
                 
-                var tracer = global.tracer;    
                 var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
                 
+                tracer.local('pay-me', () => {
                 request.get(cardLink, function (error, response, body) {
                   if (error) {
                     callback(error);
@@ -133,6 +165,7 @@
                   }
                   callback();
                 });
+              });
               }
           ], function (err, result) {
             if (err) {
@@ -153,9 +186,9 @@
           console.log("Posting Order: " + JSON.stringify(order));
           req.session.lastBody = order;
 
-          var tracer = global.tracer;    
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-
+          
+          tracer.local('pay-me', () => {
           request(options, function (error, response, body) {
             if (error) {
               return callback(error);
@@ -164,6 +197,7 @@
             console.log("Order response: " + JSON.stringify(body));
             callback(null, response.statusCode, body);
           });
+        });
         }
     ],
     function (err, status, result) {

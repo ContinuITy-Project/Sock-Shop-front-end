@@ -78,15 +78,14 @@
    *   });
    * });
    */
-  helpers.simpleHttpRequest = function(url, res, next) {
-    
-    var tracer = global.tracer;
+  helpers.simpleHttpRequest = function(url, res, next, tracer) {
     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-    
+    tracer.local('pay-me', () => {
     request.get(url, function(error, response, body) {
       if (error) return next(error);
       helpers.respondSuccessBody(res, body);
     }.bind({res: res}));
+  });
   }
 
   /* TODO: Add documentation */
