@@ -1,11 +1,4 @@
-
 function login() {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('login', () => {
     var username = $('#username-modal').val();
     var password = $('#password-modal').val();
     $.ajax({
@@ -28,24 +21,12 @@ function login() {
         },
         beforeSend: function (xhr) {
             xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password));
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "login");
-            tracer.recordBinary('http.request.method', "GET");
-            tracer.recordBinary('header.Authorization',"Basic " + btoa(username + ":" + password));
         }
     });
     return false;
-})
 }
 
 function register() {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('register', () => {
     var username = $('#register-username-modal').val();
     var email = $('#register-email-modal').val();
     var password = $('#register-password-modal').val();
@@ -78,19 +59,11 @@ function register() {
             console.log('error: ' + textStatus);
             console.log('error: ' + errorThrown);
         },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "register");
-            tracer.recordBinary('http.request.method', "POST");
-            tracer.recordBinary('body', postvals)
-        }
     });
     return false;
-})
 }
 
-function logout() {   
+function logout() {
     $.removeCookie('logged_in');
     location.reload();
 }
@@ -112,12 +85,6 @@ function resetTags() {
 }
 
 function order() {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('order', () => {
     if (!$.cookie('logged_in')) {
         $("#user-message").html('<div class="alert alert-danger alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button> You must be logged in to place an order.</div>');
         return false;
@@ -142,25 +109,12 @@ function order() {
             if (jqXHR.status == 406) {
                 $("#user-message").html('<div class="alert alert-danger alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button> Error placing order. ' + response_payload.message + '</div>');
             }
-        },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "orders");
-            tracer.recordBinary('http.request.method', "POST");
         }
     });
     return success;
-})
 }
 
 function deleteCart() {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('deleteCart', () => {
     $.ajax({
         url: "cart",
         type: "DELETE",
@@ -172,24 +126,11 @@ function deleteCart() {
             console.log('error: ' + JSON.stringify(jqXHR));
             console.log('error: ' + textStatus);
             console.log('error: ' + errorThrown);
-        },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "cart");
-            tracer.recordBinary('http.request.method', "DELETE");
         }
     });
-})
 }
 
 function addToCart(id) {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('addToCart', () => {
     console.log("Sending request to add to cart: " + id);
     $.ajax({
         url: "cart",
@@ -201,28 +142,14 @@ function addToCart(id) {
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.error('Could not add item: ' + id + ', due to: ' + textStatus + ' | ' + errorThrown);
-        },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "cart");
-            tracer.recordBinary('http.request.method', "POST");
-            tracer.recordBinary('body', JSON.stringify({"id": id}));
-
         }
     });
-})
 }
 
 // function update To Cart(itemId, quantity, callback)
 // cart/update request sent to frontend server (index.js - app.post("/cart/update" function...)
 function updateToCart(id, quantity, next) {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('updateToCart', () => {
+
 	console.log("Sending request to update cart: item: " + id + " quantity: " + quantity);
     $.ajax({
         url: "cart/update",
@@ -235,25 +162,11 @@ function updateToCart(id, quantity, next) {
         error: function (jqXHR, textStatus, errorThrown) {
             console.error('Could not update item: ' + id + ', due to: ' + textStatus + ' | ' + errorThrown);
             next();
-        },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "cart/update");
-            tracer.recordBinary('http.request.method', "POST");
-            tracer.recordBinary('body', JSON.stringify({"id": id, "quantity": quantity}));
         }
     });
-})
 }
 
 function username(id, callback) {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-        tracer.local('updateToCart', () => {
     console.log("Requesting user account information " + id);
     $.ajax({
         url: "customers/" + id,
@@ -269,24 +182,11 @@ function username(id, callback) {
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.error('Could not get user information: ' + id + ', due to: ' + textStatus + ' | ' + errorThrown);
-        },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "customers/" + id);
-            tracer.recordBinary('http.request.method', "GET");
         }
     });
-})
 }
 
 function address() {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('address', () => {
     var data = {
         "number": $("#form-number").val(),
         "street": $("#form-street").val(),
@@ -308,25 +208,11 @@ function address() {
             console.log('error: ' + textStatus);
             console.log('error: ' + errorThrown);
         },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "addresses");
-            tracer.recordBinary('http.request.method', "POST");
-            tracer.recordBinary('body', JSON.stringify(data));
-        }
     });
     return false;
-})
 }
 
 function card() {
-    var recorder = window.recorder;
-    var localServiceName = window.localServiceName;
-    var zipkin = window.zipkin;
-    var tracer = new zipkin.Tracer({ctxImpl, recorder, localServiceName, sampler: new zipkin.sampler.CountingSampler(1),
-        traceId128Bit: false});
-    tracer.local('card', () => {
     var data = {
         "longNum": $("#form-card-number").val(),
         "expires": $("#form-expires").val(),
@@ -346,14 +232,6 @@ function card() {
             console.log('error: ' + textStatus);
             console.log('error: ' + errorThrown);
         },
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader("X-B3-Spanid",tracer.id.spanId);
-            xhr.setRequestHeader("X-B3-Traceid",tracer.id.traceId);
-            tracer.recordBinary('http.url', "cards");
-            tracer.recordBinary('http.request.method', "POST");
-            tracer.recordBinary('body', JSON.stringify(data));
-        }
     });
     return false;
-})
 }

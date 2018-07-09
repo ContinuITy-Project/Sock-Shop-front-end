@@ -8,7 +8,7 @@
     , helpers   = require("../../helpers")
     , app       = express()
 
-    var serviceName = "frontend-remotecall";
+    var serviceName = "front-end-remotecall";
     var remoteServiceName = "orders";
     
     
@@ -18,6 +18,12 @@
     const {Tracer, BatchRecorder, CountingSampler, jsonEncoder: {JSON_V2}} = require('zipkin');
     const zipkin = require("zipkin");
     
+    var _require = require('zipkin'),
+    _require$option = _require.option,
+    Some = _require$option.Some,
+    None = _require$option.None,
+    Instrumentation = _require.Instrumentation;
+
     const CLSContext = require('zipkin-context-cls');
     const ctxImpl = new CLSContext('orders');
     const {HttpLogger} = require('zipkin-transport-http');
@@ -40,9 +46,31 @@
       sampler: new zipkin.sampler.CountingSampler(1), // sample rate 0.01 will sample 1 % of all incoming requests
       traceId128Bit: false // to generate 128-bit trace IDs.
     });
-    app.use(zipkinMiddleware({tracer}));
+
+    var url = require('url');
+
+  function formatRequestUrl(req) {
+    var parsed = url.parse(req.originalUrl);
+    return url.format({
+      protocol: req.protocol,
+      host: req.get('host'),
+      pathname: parsed.pathname,
+      search: parsed.search
+    });
+  }
+  var instrumentation = new Instrumentation.HttpServer({ tracer: tracer, serviceName: "front-end", port: 0 });
 
   app.get("/orders", function (req, res, next) {
+    tracer.scoped(function () {
+      function readHeader(header) {
+        var val = req.header(header);
+        if (val != null) {
+          return new Some(val);
+        } else {
+          return None;
+        }
+      }
+      var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
     if (!logged_in) {
@@ -55,8 +83,6 @@
         function (callback) {
           
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-          tracer.local('pay-me', () => {
-
           request(endpoints.ordersUrl + "/orders/search/customerId?sort=date&custId=" + custId, function (error, response, body) {
             if (error) {
               return callback(error);
@@ -68,7 +94,6 @@
             }
             callback(null, JSON.parse(body)._embedded.customerOrders);
           });
-        });
         }
     ],
     function (err, result) {
@@ -76,20 +101,42 @@
         return next(err);
       }
       helpers.respondStatusBody(res, 201, JSON.stringify(result));
+      instrumentation.recordResponse(id, res.statusCode);
     });
   });
+});
 
   app.get("/orders/*", function (req, res, next) {
+    tracer.scoped(function () {
+      function readHeader(header) {
+        var val = req.header(header);
+        if (val != null) {
+          return new Some(val);
+        } else {
+          return None;
+        }
+      }
+    var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
     var url = endpoints.ordersUrl + req.url.toString();
     
     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-    tracer.local('pay-me', () => {
 
     request.get(url).pipe(res);
+    instrumentation.recordResponse(id, res.statusCode);
     });
-  });
+});
 
   app.post("/orders", function(req, res, next) {
+    tracer.scoped(function () {
+      function readHeader(header) {
+        var val = req.header(header);
+        if (val != null) {
+          return new Some(val);
+        } else {
+          return None;
+        }
+      }
+    var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
     if (!logged_in) {
@@ -103,8 +150,6 @@
         function (callback) {
           
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-          tracer.local('pay-me', () => {
-
           request(endpoints.customersUrl + "/" + custId, function (error, response, body) {
             if (error || body.status_code === 500) {
               callback(error);
@@ -123,7 +168,6 @@
             };
             callback(null, order, addressLink, cardLink);
           });
-        });
         },
         function (order, addressLink, cardLink, callback) {
           async.parallel([
@@ -131,8 +175,6 @@
                 console.log("GET Request to: " + addressLink);
                 
                 var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-                tracer.local('pay-me', () => {
-
                 request.get(addressLink, function (error, response, body) {
                   if (error) {
                     callback(error);
@@ -145,14 +187,12 @@
                   }
                   callback();
                 });
-              });
               },
               function (callback) {
                 console.log("GET Request to: " + cardLink);
                 
                 var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
                 
-                tracer.local('pay-me', () => {
                 request.get(cardLink, function (error, response, body) {
                   if (error) {
                     callback(error);
@@ -165,7 +205,6 @@
                   }
                   callback();
                 });
-              });
               }
           ], function (err, result) {
             if (err) {
@@ -188,7 +227,6 @@
 
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
           
-          tracer.local('pay-me', () => {
           request(options, function (error, response, body) {
             if (error) {
               return callback(error);
@@ -197,7 +235,6 @@
             console.log("Order response: " + JSON.stringify(body));
             callback(null, response.statusCode, body);
           });
-        });
         }
     ],
     function (err, status, result) {
@@ -205,8 +242,10 @@
         return next(err);
       }
       helpers.respondStatusBody(res, status, JSON.stringify(result));
+      instrumentation.recordResponse(id, res.statusCode);
     });
   });
+});
 
   module.exports = app;
 }());
