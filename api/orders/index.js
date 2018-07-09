@@ -79,9 +79,10 @@
     }
 
     var custId = req.session.customerId;
+    var tempId = tracer.id;
     async.waterfall([
         function (callback) {
-          
+          tracer.setId(tempId);
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
           request(endpoints.ordersUrl + "/orders/search/customerId?sort=date&custId=" + custId, function (error, response, body) {
             if (error) {
@@ -137,6 +138,7 @@
         }
       }
     var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
+    tracer.recordBinary('body', JSON.stringify(req.body));
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
     if (!logged_in) {
@@ -145,10 +147,10 @@
     }
 
     var custId = req.session.customerId;
-
+    var tempId = tracer.id;
     async.waterfall([
         function (callback) {
-          
+          tracer.setId(tempId);
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
           request(endpoints.customersUrl + "/" + custId, function (error, response, body) {
             if (error || body.status_code === 500) {
@@ -173,7 +175,7 @@
           async.parallel([
               function (callback) {
                 console.log("GET Request to: " + addressLink);
-                
+                tracer.setId(tempId);
                 var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
                 request.get(addressLink, function (error, response, body) {
                   if (error) {
@@ -190,9 +192,8 @@
               },
               function (callback) {
                 console.log("GET Request to: " + cardLink);
-                
+                tracer.setId(tempId);
                 var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-                
                 request.get(cardLink, function (error, response, body) {
                   if (error) {
                     callback(error);
@@ -224,7 +225,7 @@
           };
           console.log("Posting Order: " + JSON.stringify(order));
           req.session.lastBody = order;
-
+          tracer.setId(tempId);
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
           
           request(options, function (error, response, body) {

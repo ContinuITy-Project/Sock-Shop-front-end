@@ -169,7 +169,7 @@
         }
       }
     var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
-
+    tracer.recordBinary('body', JSON.stringify(req.body));
     console.log("Attempting to add to cart: " + JSON.stringify(req.body));
     
     if (req.body.id == null) {
@@ -178,10 +178,10 @@
     }
 
     var custId = helpers.getCustomerId(req, app.get("env"));
-
+    var tempId = tracer.id;
     async.waterfall([
         function (callback) {
-
+          tracer.setId(tempId);
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
           request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
@@ -198,7 +198,7 @@
           };
           console.log("POST to carts: " + options.uri + " body: " + JSON.stringify(options.body));
           req.session.lastBody = options.body;
-          
+          tracer.setId(tempId);
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
           request(options, function (error, response, body) {
             if (error) {
@@ -233,6 +233,7 @@
         }
       }
       var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
+      tracer.recordBinary('body', JSON.stringify(req.body));
 
     console.log("Attempting to update cart item: " + JSON.stringify(req.body));
 
@@ -245,10 +246,10 @@
       return;
     }
     var custId = helpers.getCustomerId(req, app.get("env"));
-
+    var tempId = tracer.id;
     async.waterfall([
         function (callback) {
-
+          tracer.setId(tempId);
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
           request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
             console.log(body);
@@ -264,7 +265,7 @@
           };
           console.log("PATCH to carts: " + options.uri + " body: " + JSON.stringify(options.body));
           req.session.lastBody = options.body;
-
+          tracer.setId(tempId);
           var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
           request(options, function (error, response, body) {

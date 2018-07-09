@@ -139,6 +139,8 @@
               }
             }
           var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
+          tracer.recordBinary('body', JSON.stringify(req.body));
+
         var options = {
             uri: endpoints.customersUrl,
             method: 'POST',
@@ -172,6 +174,8 @@
               }
             }
           var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
+          tracer.recordBinary('body', JSON.stringify(req.body));
+
         req.body.userID = helpers.getCustomerId(req, app.get("env"));
 
         var options = {
@@ -282,6 +286,8 @@
               }
             }
           var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
+          tracer.recordBinary('body', JSON.stringify(req.body));
+
         req.body.userID = helpers.getCustomerId(req, app.get("env"));
 
         var options = {
@@ -416,6 +422,8 @@
               }
             }
           var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
+          tracer.recordBinary('body', JSON.stringify(req.body));
+
         var options = {
             uri: endpoints.registerUrl,
             method: 'POST',
@@ -426,12 +434,11 @@
         console.log("Posting Customer: " + JSON.stringify(req.body));
         req.session.lastBody = req.body;
 
-
+        var tempId = tracer.id;
         async.waterfall([
                 function(callback) {
-
+                    tracer.setId(tempId);
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-
                     request(options, function(error, response, body) {
                         if (error !== null ) {
                             callback(error);
@@ -461,7 +468,7 @@
                         uri: endpoints.cartsUrl + "/" + custId + "/merge" + "?sessionId=" + sessionId,
                         method: 'GET'
                     };
-
+                    tracer.setId(tempId);
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
                     request(options, function(error, response, body) {
@@ -506,7 +513,7 @@
             }
           var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
         console.log("Received login request");
-
+        var tempId = tracer.id;
         async.waterfall([
                 function(callback) {
                     var options = {
@@ -516,6 +523,7 @@
                         uri: endpoints.loginUrl
                     };
 
+                    tracer.setId(tempId);
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
                     request(options, function(error, response, body) {
@@ -544,7 +552,7 @@
                         uri: endpoints.cartsUrl + "/" + custId + "/merge" + "?sessionId=" + sessionId,
                         method: 'GET'
                     };
-
+                    tracer.setId(tempId);
                     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
                     
                     request(options, function(error, response, body) {
