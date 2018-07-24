@@ -300,8 +300,6 @@
         req.session.lastBody = req.body;
 
         var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
-        tracer.local('pay-me', () => {
-
         request(options, function(error, response, body) {
             if (error) {
                 return next(error);
@@ -311,7 +309,6 @@
         }.bind({
             res: res
         }));
-    });
     });
 });
 
