@@ -32,8 +32,11 @@
     "prom-client": "^6.3.0",
     "request": "^2.72.0",
     "serve-static": "^1.10.2",
-    "zipkin": "^0.10.1",
-    "zipkin-instrumentation-express": "^0.11.1"
+    "zipkin": "^0.13.0",
+    "zipkin-context-cls": "^0.13.0",
+    "zipkin-instrumentation-express": "^0.13.0",
+    "zipkin-instrumentation-request": "^0.13.0",
+    "zipkin-transport-http": "^0.13.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
