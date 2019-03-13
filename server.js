@@ -21,13 +21,12 @@ const {HttpLogger} = require('zipkin-transport-http');
 const CLSContext = require('zipkin-context-cls');
 const ctxImpl = new CLSContext('zipkin');
 
-var port = process.env.ZIPKIN_PORT;
-var host = process.env.ZIPKIN_HOST;
-const zipkinUrl = `http://${host}:${port}`;
+const zipkinUrl = process.env.ZIPKIN_URL;
+
 
 const recorder = new BatchRecorder({
   logger: new HttpLogger({
-    endpoint: `${zipkinUrl}/rest/api/v2/spans`,
+    endpoint: `${zipkinUrl}`,
     jsonEncoder: JSON_V2
   })
 });
