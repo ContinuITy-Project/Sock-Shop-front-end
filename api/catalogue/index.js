@@ -26,6 +26,9 @@
   const ctxImpl = new CLSContext('catalogue');
   const {HttpLogger} = require('zipkin-transport-http');
 
+  var cookie = require('cookie');
+  var signature = require('cookie-signature')
+
   const zipkinUrl =  process.env.ZIPKIN_URL;
 
   const recorder = new BatchRecorder({
@@ -68,6 +71,12 @@
       }
     var id = instrumentation.recordRequest(req.method, formatRequestUrl(req), readHeader);
     var url = endpoints.catalogueUrl + req.url.toString();
+
+    // Quick fix: When calling this first, the Set-Cookie header will be set.
+    // This will store the value to the cookie tag.
+    var signed = 's:' + signature.sign(req.sessionID, 'sooper secret');
+    var data = cookie.serialize('md.sid', signed, req.session.cookie.data);
+    tracer.recordBinary("cookie", data);
     
     var request = wrapRequest(originalRequest, {tracer, serviceName, remoteServiceName});
 
